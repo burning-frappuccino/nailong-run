@@ -595,6 +595,7 @@
       };
       button.addEventListener('pointerdown', event => {
         event.preventDefault();
+        if (game.state !== 'playing') return;
         button.setPointerCapture?.(event.pointerId);
         if (action === 'roll') { input.rollHeld = true; haptic(HAPTIC.roll); }
         else doAction(action);
