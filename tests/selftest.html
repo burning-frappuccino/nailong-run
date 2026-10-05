@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>奶龙跑酷 · 自检</title>
+<style>
+  body{font:13px/1.6 ui-monospace,Consolas,monospace;background:#0e1319;color:#cfd8e3;margin:0;padding:14px}
+  h1{font-size:16px;color:#ffd166;margin:0 0 10px}
+  .ok{color:#7cf03d}.bad{color:#ff6b6b}
+  pre{white-space:pre-wrap;margin:2px 0}
+  .sum{margin-top:12px;padding:9px 12px;border-radius:8px;background:#1b2430;font-weight:700}
+</style>
+</head>
+<body>
+<h1>奶龙跑酷 · 内核自检</h1>
+<pre id="out">running…</pre>
+<div class="sum" id="sum">…</div>
+
+<script>
+/* 让配置层读到干净的默认值 */
+try { localStorage.getItem = function () { return null; }; } catch (e) {}
+</script>
+<script src="../js/config.js"></script>
+<script src="../js/util.js"></script>
+<script>
+/* 自检不加载音频模块（headless 下没有声卡），用空实现顶替 */
+window.NR = window.NR || {};
+window.NR.audio = {
+  play() {}, unlock() {}, startMusic() {}, stopMusic() {}, setMuted() {},
+  setIntensity() {}, duck() {}, update() {}, get muted() { return true; }, state: 'stub'
+};
+</script>
+<script src="../js/particles.js"></script>
+<script src="../js/biomes.js"></script>
+<script src="../js/world.js"></script>
+
+<script>
+const lines = [];
+let pass = 0, fail = 0;
+const log = (ok, msg) => { ok ? pass++ : fail++; lines.push(`<span class="${ok ? 'ok' : 'bad'}">${ok ? 'PASS' : 'FAIL'}</span>  ${msg}`); };
+const NR = window.NR, T = NR.T, W = NR.world, S = W.state;
+const IDLE = { left: false, right: false, jump: false, roll: false };
+const VW = 1280, VH = 760;
+NR.setViewport(VW, VH);
+const V = NR.view;
+const pc = (a, b) => (a / b * 100).toFixed(1) + '%';
+
+/* ============================ 1. 透视投影 ============================ */
+log(Math.abs(V.horizon - VH * T.horizon) < 0.01,
+  `地平线 = ${V.horizon.toFixed(1)}px (${pc(V.horizon, VH)})，配置 ${T.horizon}`);
+
+let worst = 0, worstZ = 0;
+for (const z of [-1, -0.5, 0, 0.5, 2, 5, 20, 100, 1000, 5000]) {
+  const p = NR.project(0, z);
+  if (!p) continue;
+  const back = NR.zAtRow(p.y);
+  const e = Math.abs(back - z) / Math.max(1, Math.abs(z));
+  if (e > worst) { worst = e; worstZ = z; }
+}
+log(worst < 1e-6, `z→屏幕→z 往返最大相对误差 ${worst.toExponential(2)} (z=${worstZ})`);
+
+const feet = NR.project(0, 0);
+log(feet && Math.abs(feet.y - VH * T.feetRatio) < 0.01,
+  `角色脚部 y=${feet ? feet.y.toFixed(1) : 'null'}，精确等于屏高 ${pc(VH * T.feetRatio, VH)}`);
+
+let prevU = Infinity, mono = true, flipY = null;
+for (let y = VH - 2; y >= V.horizon + 2; y -= 2) {
+  const u = NR.unit(NR.zAtRow(y));
+  if (u > prevU * 1.005) { mono = false; if (!flipY) flipY = y; }
+  prevU = u;
+}
+log(mono, `近大远小单调性：${mono ? '全程成立' : '在 y=' + flipY + ' 处出现反常'}`);
+
+let prevZ = -Infinity, zMono = true;
+for (let y = VH - 2; y >= V.horizon + 2; y -= 2) {
+  const z = NR.zAtRow(y);
+  if (z < prevZ - 1e-6) { zMono = false; break; }
+  prevZ = z;
+}
+log(zMono, '纵深单调性：屏幕越靠上世界距离越远');
+
+const charPx = T.spriteH * NR.unit(0);
+log(charPx > VH * 0.18 && charPx < VH * 0.34,
+  `角色高 ${charPx.toFixed(0)}px (${pc(charPx, VH)} 屏高)，期望 18%~34%`);
+const lanePx = T.laneW * NR.unit(0);
+log(lanePx > VW * 0.15 && lanePx < VW * 0.40, `车道屏幕间距 ${lanePx.toFixed(0)}px (${pc(lanePx, VW)} 屏宽)`);
+const roadPx = T.roadHalf * 2 * NR.unit(0);
+log(roadPx > VW * 0.45, `路面 z=0 处宽 ${roadPx.toFixed(0)}px (${pc(roadPx, VW)} 屏宽)`);
+log(charPx * T.spriteAspect < lanePx * 0.8,
+  `角色宽 ${(charPx * T.spriteAspect).toFixed(0)}px < 车道宽 ${lanePx.toFixed(0)}px × 0.8`);
+log(V.zNear < 0, `画面底部能看到角色身后 ${(-V.zNear).toFixed(2)}m 的路面`);
+log(Number.isFinite(NR.unit(NR.zAtRow(V.horizon + 3))), '地平线附近数值有限，无 NaN/Infinity');
+
+/* ============================ 2. 坡道 ============================ */
+log(Math.abs(W.rampProfile(0, 1)) < 1e-9 && Math.abs(W.rampProfile(1, 1)) < 1e-9, '坡道两端高度为 0');
+log(Math.abs(W.rampProfile(0.5, 1) - 1) < 1e-9, '坡道中段 = 满高');
+log(W.rampProfile(0.1, 1) < W.rampProfile(0.2, 1) && W.rampProfile(0.2, 1) <= W.rampProfile(0.5, 1),
+  '坡道上坡段单调上升');
+
+/* ============================ 3. 主题 ============================ */
+const seen = new Set();
+for (let d = 0; d < T.biomeEvery * 12; d += 17) seen.add(NR.biomes.paletteAt(d).key);
+log(seen.size >= 5, `12 段里程内出现 ${seen.size} 种主题（期望 ≥5）`);
+log(NR.biomes.paletteAt(T.biomeEvery * 0.5).key !== NR.biomes.paletteAt(T.biomeEvery * 1.5).key,
+  '主题会随距离切换');
+const HEX = ['road', 'ground', 'sky', 'fog', 'accent', 'haze', 'coin', 'dash', 'lamp',
+  'silhouette', 'silhouette2', 'shoulder', 'sun', 'sunGlow', 'groundAlt', 'groundFar', 'roadAlt', 'accent2'];
+const badHex = [];
+for (let d = 0; d < T.biomeEvery * 6; d += 7) {
+  const p = NR.biomes.paletteAt(d);
+  for (const k of HEX) {
+    const arr = Array.isArray(p[k]) ? p[k] : [p[k]];
+    for (const c of arr) if (!/^#[0-9a-f]{6}$/i.test(c)) badHex.push(`${k}=${c}@${d}`);
+  }
+}
+log(badHex.length === 0, `全部主题色均为合法 #rrggbb（异常 ${badHex.length} 处）`);
+
+/* ============================ 4. 关卡生成审计 ============================ */
+W.reset(2026);
+S.distance = 0;
+const generated = [];
+let overlapPairs = 0, worstOverlap = 0;
+/* 直接给 objects.push 打桩记录生成时刻的对象，
+ * 不依赖「活着的对象」——否则一路吃币会把障碍记录一起清掉。 */
+const rawObjects = S.objects;
+const origPush = rawObjects.push.bind(rawObjects);
+rawObjects.push = function (...items) {
+  for (const o of items) {
+    if (o.kind === 'coin' || o.kind === 'power') continue;
+    generated.push({ kind: o.kind, lane: o.lane, z: o.z });
+  }
+  return origPush(...items);
+};
+for (let f = 0; f < 60000; f++) {
+  W.update(1 / 60, IDLE);
+  S.player.alive = true;
+  S.invuln = 1e9;
+  const live = S.objects.filter(o => o.kind !== 'coin' && o.kind !== 'power');
+  for (let i = 0; i < live.length; i++) {
+    for (let j = i + 1; j < live.length; j++) {
+      const a = live[i], b = live[j];
+      if (a.lane !== b.lane) continue;
+      const dz = Math.abs(a.z - b.z);
+      const need = (W.KIND[a.kind].halfD + W.KIND[b.kind].halfD) * 0.85;
+      if (dz < need) { overlapPairs++; worstOverlap = Math.max(worstOverlap, need - dz); }
+    }
+  }
+}
+rawObjects.push = origPush;
+const obstacles = generated.filter(o => o.kind !== 'coin' && o.kind !== 'power');
+const histo = {};
+for (const o of obstacles) histo[o.kind] = (histo[o.kind] || 0) + 1;
+const meters = S.distance;
+log(obstacles.length > 900,
+  `${meters.toFixed(0)}m 内生成 ${obstacles.length} 个障碍（${(obstacles.length / meters * 100).toFixed(2)} 个/百米）`);
+log(Object.keys(histo).length >= 6, `障碍种类 ${Object.keys(histo).length} 种 → ${JSON.stringify(histo)}`);
+log(overlapPairs === 0, `同车道障碍不重叠：${overlapPairs} 处违规（最大侵入 ${worstOverlap.toFixed(2)}m）`);
+
+function solvable(list) {
+  if (!list.length) return true;
+  const ROW = 1.1;
+  const zs = list.map(o => o.z);
+  const zNear = Math.min(...zs) - 3.5, zFar = Math.max(...zs) + 3.5;
+  const rows = Math.max(2, Math.ceil((zFar - zNear) / ROW));
+  let reach = [true, true, true];
+  for (let r = 0; r < rows; r++) {
+    const z = zNear + (r + 0.5) * ROW;
+    const free = [true, true, true];
+    for (const o of list) {
+      const def = W.KIND[o.kind];
+      if (!def || Math.abs(o.z - z) > def.halfD + ROW * 0.5) continue;
+      for (let l = 0; l < 3; l++) {
+        if (Math.abs(W.laneX(l) - W.laneX(o.lane)) < def.halfW + T.playerHalfW - 0.03) free[l] = false;
+      }
+    }
+    const next = [false, false, false];
+    for (let l = 0; l < 3; l++) {
+      if (!free[l]) continue;
+      if (reach[l] || (l > 0 && reach[l - 1]) || (l < 2 && reach[l + 1])) next[l] = true;
+    }
+    reach = next;
+    if (!reach.some(Boolean)) return false;
+  }
+  return true;
+}
+/* 可解性用「玩家真实面对的一屏」来测：
+ * 每帧把当前存活障碍按即将抵达的先后取一段，检查是否存在生路。
+ * 这比事后按 z 切窗更贴近实际体验。 */
+W.reset(2026);
+S.distance = 0;
+let windows = 0, badWindows = 0, worstWin = null;
+for (let f = 0; f < 20000; f++) {
+  W.update(1 / 60, IDLE);
+  S.player.alive = true; S.invuln = 1e9;
+  if (f % 12 !== 0) continue;
+  /* 取未来 1.6 秒内会抵达的障碍（玩家真正要面对的一屏） */
+  const horizonZ = S.speed * 1.6;
+  const screen = S.objects
+    .filter(o => o.kind !== 'coin' && o.kind !== 'power' && o.z > -1 && o.z < horizonZ)
+    .map(o => ({ kind: o.kind, lane: o.lane, z: o.z }));
+  if (screen.length < 3) continue;
+  windows++;
+  if (!solvable(screen)) { badWindows++; if (!worstWin) worstWin = screen; }
+}
+log(badWindows === 0,
+  `可解性（每帧取未来 1.6 秒的一屏）：${windows} 个样本，${badWindows} 个无解` +
+  (worstWin ? ' 例:' + JSON.stringify(worstWin.slice(0, 6)) : ''));
+
+/* ============================ 5. 难度曲线 ============================ */
+const speeds = [];
+for (const d of [0, 500, 1400, 3000, 8000]) {
+  W.reset(7);
+  S.distance = d;
+  for (let i = 0; i < 600; i++) {
+    W.update(1 / 60, IDLE);
+    S.player.alive = true; S.invuln = 1e9; S.distance = d;
+  }
+  speeds.push(S.speed);
+}
+log(speeds[0] < speeds[1] && speeds[1] < speeds[4],
+  `速度随距离递增：${speeds.map(v => v.toFixed(1)).join(' → ')}`);
+log(speeds[4] <= T.speedMax + 0.6, `速度不超过上限 ${T.speedMax}`);
+
+/* ============================ 6. 碰撞判定 ============================ */
+function scenario(overrides, objKind, extra) {
+  W.reset(3);
+  S.objects.length = 0;
+  S.speed = 20; S.combo = 0;
+  Object.assign(S.player, {
+    x: W.laneX(1), lane: 1, vx: 0, alive: true, air: 0, feet: 0, ground: 0,
+    vy: 0, rolling: 0, buffer: 0, coyote: 0, targetLane: 1
+  }, overrides);
+  S.invuln = 0; S.shield = false; S.power = null;
+  S.objects.push(Object.assign({
+    kind: objKind, lane: 1, x: W.laneX(1), y: 0, z: T.playerZ, spin: 0, hit: false,
+    kindDef: W.KIND[objKind]
+  }, extra || {}));
+  W.update(1 / 60, IDLE);
+  return S.player.alive;
+}
+log(!scenario({}, 'barrier'), '平地撞路障 → 死亡');
+log(!scenario({}, 'crate'), '平地撞货箱 → 死亡');
+log(scenario({ air: 1.4, feet: 1.4, vy: 0.2 }, 'barrier'), '跃起 1.4m 越过路障 → 存活');
+log(scenario({ air: 1.75, feet: 1.75, vy: 0.2 }, 'crate'), '跃起 1.75m 越过货箱 → 存活');
+log(!scenario({ air: 0.9, feet: 0.9, vy: 0.2 }, 'crate'), '只跳到 0.9m 撞货箱 → 死亡');
+log(scenario({ rolling: T.rollTime }, 'overhead', { clearance: 0.98 }), '翻滚穿过横杆 → 存活');
+log(!scenario({}, 'overhead', { clearance: 0.98 }), '站立撞横杆 → 死亡');
+log(!scenario({ air: 3.2, feet: 3.2, vy: 0.1 }, 'train'), '列车是全高障碍，跳多高都会撞');
+log(scenario({ air: 1.2, feet: 1.2, vy: 0.2 }, 'gap'), '跳过坑洞 → 存活');
+log(!scenario({}, 'gap'), '踩进坑洞 → 死亡');
+
+W.reset(3); S.objects.length = 0;
+Object.assign(S.player, { x: W.laneX(0), lane: 0, vx: 0, alive: true, air: 0, feet: 0, vy: 0, rolling: 0 });
+S.invuln = 0; S.shield = false;
+S.objects.push(Object.assign({ kind: 'barrier', lane: 1, x: W.laneX(1), y: 0, z: T.playerZ, spin: 0, hit: false, kindDef: W.KIND.barrier }));
+W.update(1 / 60, IDLE);
+log(S.player.alive, '相邻车道有障碍 → 不受影响');
+
+const apex = (T.jumpV * T.jumpV) / (2 * T.gravity);
+log(apex > W.KIND.crate.top + 0.06, `跳跃顶点 ${apex.toFixed(2)}m > 货箱 ${W.KIND.crate.top}m + 余量`);
+log(W.KIND.overhead.bottom < T.standH - 0.02, `横杆下沿 ${W.KIND.overhead.bottom}m < 站立高 ${T.standH}m（必须翻滚）`);
+log(T.rollH < W.KIND.overhead.bottom, `翻滚碰撞高 ${T.rollH}m < 横杆下沿（翻滚可通过）`);
+const airtime = T.jumpV / T.gravity + T.jumpV / T.gravityFall;
+log(airtime > 0.55 && airtime < 0.95, `滞空时间 ${airtime.toFixed(2)}s（手感区间 0.55~0.95）`);
+log(airtime * T.speedStart > W.KIND.crate.halfD * 2 + 1,
+  `起跳跨越 ${(airtime * T.speedStart).toFixed(1)}m，足以穿过货箱`);
+
+/* ============================ 7. 护盾 / 连击 ============================ */
+W.reset(3); S.objects.length = 0;
+Object.assign(S.player, { x: W.laneX(1), lane: 1, vx: 0, alive: true, air: 0, feet: 0, vy: 0, rolling: 0 });
+S.invuln = 0; S.shield = true; S.power = { kind: 'shield', time: 5 };
+S.objects.push(Object.assign({ kind: 'barrier', lane: 1, x: W.laneX(1), y: 0, z: T.playerZ, spin: 0, hit: false, kindDef: W.KIND.barrier }));
+W.update(1 / 60, IDLE);
+log(S.player.alive && !S.shield, '有护盾时撞击 → 存活且护盾被消耗');
+
+W.reset(3); S.objects.length = 0;
+Object.assign(S.player, { x: W.laneX(1), lane: 1, vx: 0, alive: true, air: 0, feet: 0, vy: 0, rolling: 0 });
+S.invuln = 1e9; S.combo = 0; S.coinCount = 0;
+for (let i = 0; i < 5; i++) {
+  S.objects.push(Object.assign({ kind: 'coin', lane: 1, x: W.laneX(1), y: 0.55, z: T.playerZ, spin: 0, hit: false, kindDef: W.KIND.coin }));
+  W.update(1 / 60, IDLE);
+  S.objects.length = 0;
+}
+log(S.coinCount >= 5 && S.combo >= 5, `连续吃币：金币 ${S.coinCount}、连击 ${S.combo}`);
+
+/* ============================ 8. 稳定性与性能 ============================ */
+W.reset(99);
+const t0 = performance.now();
+let maxObj = 0, maxRamp = 0;
+for (let i = 0; i < 12000; i++) {
+  W.update(1 / 60, IDLE);
+  S.player.alive = true; S.invuln = 1e9;
+  maxObj = Math.max(maxObj, S.objects.length);
+  maxRamp = Math.max(maxRamp, S.ramps.length);
+}
+const cost = (performance.now() - t0) / 12000;
+log(maxObj < 420, `200 秒模拟对象数峰值 ${maxObj}（坡道峰值 ${maxRamp}，测试里不吃币所以偏高）`);
+log(Number.isFinite(S.distance) && Number.isFinite(S.speed) && Number.isFinite(S.player.x),
+  `数值稳定：distance=${S.distance.toFixed(0)}m speed=${S.speed.toFixed(1)} x=${S.player.x.toFixed(2)}`);
+lines.push(`      · 纯逻辑每帧 ${cost.toFixed(3)} ms（60fps 预算 16.7ms）`);
+
+/* ============================ 输出 ============================ */
+document.getElementById('out').innerHTML = lines.join('\n');
+document.getElementById('sum').innerHTML =
+  `<span class="${fail ? 'bad' : 'ok'}">${fail ? '✗ 存在失败项' : '✓ 全部通过'}</span>　${pass} passed / ${fail} failed`;
+document.title = `SELFTEST ${pass}/${pass + fail}`;
+window.__result = { pass, fail, lines };
+</script>
+</body>
+</html>

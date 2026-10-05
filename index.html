@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#101b2d">
+  <meta name="description" content="奶龙横向跑酷：跳跃、二段跳、翻滚，冲过高台和断崖。">
+  <title>奶龙横向跑酷</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="gameShell">
+    <canvas id="game" aria-label="奶龙横向跑酷游戏画面"></canvas>
+    <header class="hud">
+      <div class="brand"><span class="brand-mark">奶</span><span>奶龙跑酷</span></div>
+      <div class="stats">
+        <span><i>距离</i><b id="distance">0</b><em>m</em></span>
+        <span><i>金币</i><b id="coins">0</b></span>
+        <span><i>得分</i><b id="score">0</b></span>
+        <span><i>最高</i><b id="best">0</b><em>m</em></span>
+      </div>
+      <div class="hud-actions">
+        <span id="biomeChip" class="biome-chip">🏙 城市天台</span>
+        <span id="abilityStatus" class="ability-status hidden"><b id="abilityLabel"></b></span>
+        <button id="pauseBtn" class="icon-btn" type="button" aria-label="暂停">Ⅱ</button>
+        <button id="soundBtn" class="icon-btn" type="button" aria-label="切换声音">♪</button>
+      </div>
+    </header>
+    <div id="combo" class="combo hidden"><span>连击</span><b id="comboCount">×0</b><i><u id="comboFill"></u></i></div>
+    <div id="banner" class="banner hidden"></div>
+    <div id="portraitNotice" class="portrait-notice"><strong>请横屏游玩</strong><span>把手机转向横屏，奶龙马上开跑</span></div>
+
+    <section id="startPanel" class="panel panel-start">
+      <div class="start-meme start-meme-left" aria-hidden="true"><img src="assets/start-meme-character.png" alt=""></div>
+      <div class="start-meme start-meme-right" aria-hidden="true"><img src="assets/start-meme-character.png" alt=""></div>
+      <p class="eyebrow">SIDE-SCROLL RUN</p>
+      <h1>奶龙横向跑酷</h1>
+      <p class="tagline">向右冲刺，跳上高台，翻过低杆，别掉进断崖。</p>
+      <div class="records"><span>最高纪录 <b id="startBest">0 m</b></span><span>累计金币 <b id="startCoins">0</b></span></div>
+      <button id="startBtn" class="primary" type="button">开始跑酷 <kbd>Enter</kbd></button>
+      <div class="howto"><span><kbd>↑</kbd>/<kbd>空格</kbd> 跳跃</span><span><kbd>↓</kbd> 长按蹲下</span><span><kbd>Shift</kbd> 冲刺</span></div>
+      <p class="tip">手机：上滑跳跃，下滑或长按翻滚按钮，右下角按钮可操作</p>
+    </section>
+
+    <section id="pausePanel" class="panel panel-small hidden">
+      <p class="eyebrow">PAUSED</p><h2>先歇一下</h2><p>奶龙还在原地等你。</p>
+      <div class="panel-actions"><button id="resumeBtn" class="primary" type="button">继续跑</button><button id="quitBtn" class="ghost" type="button">结束本局</button></div>
+    </section>
+
+    <section id="overPanel" class="panel panel-small hidden">
+      <p class="eyebrow">RUN COMPLETE</p><h2 id="overTitle">本次成绩</h2>
+      <div class="result"><b id="finalDistance">0</b><span>米</span></div>
+      <div class="result-grid"><span>金币 <b id="finalCoins">0</b></span><span>得分 <b id="finalScore">0</b></span><span>最高连击 <b id="finalCombo">×0</b></span></div>
+      <div class="support-row"><button id="supportBtn" class="support-btn" type="button">♡ 支持作者</button><span>喜欢的话，给作者一点鼓励</span></div>
+      <div class="panel-actions"><button id="restartBtn" class="primary" type="button">再跑一次</button><button id="homeBtn" class="ghost" type="button">返回首页</button></div>
+    </section>
+
+    <section id="supportModal" class="support-modal hidden" role="dialog" aria-modal="true" aria-labelledby="supportTitle">
+      <div class="support-dialog">
+        <button id="supportClose" class="support-close" type="button" aria-label="关闭支持作者界面">×</button>
+        <p class="eyebrow">THANK YOU</p>
+        <h2 id="supportTitle">支持作者</h2>
+        <p class="support-copy">如果你喜欢奶龙跑酷，可以用微信支持作者 1 元。</p>
+        <img class="support-qr" src="assets/support-wechat.png" alt="微信支付二维码，金额 1 元，收款人 Cyrus(**莉)">
+        <p class="support-note">长按或扫码识别二维码</p>
+        <a id="supportLink" class="support-link hidden" href="#" target="_blank" rel="noopener">打开收款链接</a>
+      </div>
+    </section>
+
+    <nav class="mobile-controls" aria-label="游戏控制">
+      <button data-action="jump" type="button" aria-label="跳跃">▲</button>
+      <button data-action="roll" type="button" aria-label="翻滚">▼</button>
+      <button data-action="dash" type="button" aria-label="冲刺">⚡</button>
+    </nav>
+  </main>
+  <script src="js/horizontal.js"></script>
+</body>
+</html>
