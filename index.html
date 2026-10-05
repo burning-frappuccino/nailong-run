@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#101b2d">
   <meta name="description" content="奶龙横向跑酷：跳跃、二段跳、翻滚，冲过高台和断崖。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>奶龙横向跑酷</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -72,5 +76,12 @@
     </nav>
   </main>
   <script src="js/horizontal.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

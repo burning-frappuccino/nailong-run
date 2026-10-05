@@ -55,10 +55,10 @@
   let platforms = [], ramps = [], objects = [], particles = [], nextWorldX = 950, segmentIndex = 0;
 
   const BIOMES = [
-    { key: 'city', name: '城市天台', emoji: '🏙', sky: ['#69c8ee', '#d9f4ff'], far: '#6f8797', near: '#31536a', ground: '#1d3545', top: '#71b56a', accent: '#ffc34d' },
-    { key: 'sunset', name: '落日峡谷', emoji: '🌅', sky: ['#ef8d72', '#ffd39b'], far: '#9b5c54', near: '#65394a', ground: '#392b35', top: '#c58a4e', accent: '#ffe06a' },
-    { key: 'snow', name: '雪原风口', emoji: '❄', sky: ['#8cc9ec', '#eaf8ff'], far: '#7f9eae', near: '#446779', ground: '#243a4c', top: '#dcecf0', accent: '#8be8ff' },
-    { key: 'night', name: '霓虹夜城', emoji: '🌃', sky: ['#171b47', '#553d85'], far: '#33366a', near: '#181d45', ground: '#11182d', top: '#3bcaac', accent: '#ff72c6' }
+    { key: 'city', name: '城市天台', emoji: '🏙', sky: ['#69c8ee', '#d9f4ff'], far: '#6f8797', near: '#31536a', ground: '#1d3545', top: '#71b56a', accent: '#ffc34d', platformFace: '#213c4b', platformCap: '#78bd76', platformEdge: '#0f2530', rampFace: '#294958', cloud: '#f6ffff', weather: 'wind' },
+    { key: 'sunset', name: '落日峡谷', emoji: '🌅', sky: ['#ef8d72', '#ffd39b'], far: '#9b5c54', near: '#65394a', ground: '#392b35', top: '#c58a4e', accent: '#ffe06a', platformFace: '#493442', platformCap: '#d09252', platformEdge: '#291f2d', rampFace: '#5a3d3c', cloud: '#ffd7c8', weather: 'dust' },
+    { key: 'snow', name: '雪原风口', emoji: '❄', sky: ['#8cc9ec', '#eaf8ff'], far: '#7f9eae', near: '#446779', ground: '#243a4c', top: '#dcecf0', accent: '#8be8ff', platformFace: '#2c4659', platformCap: '#e9f7f6', platformEdge: '#183041', rampFace: '#395b6b', cloud: '#e4f5ff', weather: 'snow' },
+    { key: 'night', name: '霓虹夜城', emoji: '🌃', sky: ['#171b47', '#553d85'], far: '#33366a', near: '#181d45', ground: '#11182d', top: '#3bcaac', accent: '#ff72c6', platformFace: '#171d36', platformCap: '#3cc3a2', platformEdge: '#0a1025', rampFace: '#242a4b', cloud: '#b8b8e8', weather: 'rain' }
   ];
 
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
@@ -132,31 +132,42 @@
 
     if (segmentIndex > 1) {
       const pattern = rand();
-      const a = x + range(175, 215);
+      // Keep a readable runway before each hazard so every pattern has reaction time.
+      const a = x + range(190, 230);
       const localCoins = (start, end, coinY, arc = 0) => {
         const left = x + 62, right = x + width - 46;
         const x1 = clamp(start, left, right), x2 = clamp(end, left, right);
         if (x2 - x1 >= 72) addCoinsLine(x1, x2, coinY, arc);
       };
-      if (pattern < 0.18) {
-        addObject('spike', a, y, { width: 58, height: 44 });
-        localCoins(a + 74, a + 210, y - 88, 42);
-      } else if (pattern < 0.36) {
+      if (pattern < 0.16) {
+        addObject('spike', a, y, { width: 78, height: 48, count: 2 });
+        localCoins(a + 92, a + 230, y - 92, 44);
+      } else if (pattern < 0.31) {
         addObject('crate', a, y, { width: 74, height: 78 });
         localCoins(a + 95, a + 245, y - 122, 56);
-      } else if (pattern < 0.53) {
+      } else if (pattern < 0.46) {
         addObject('bar', a + 40, y, { width: 142, height: 27 });
         localCoins(a + 178, a + 285, y - 34, 18);
-      } else if (pattern < 0.70) {
+      } else if (pattern < 0.58) {
+        addObject('cone', a, y, { width: 44, height: 50 });
+        addObject('cone', a + 78, y, { width: 44, height: 50 });
+        localCoins(a + 150, a + 294, y - 92, 40);
+      } else if (pattern < 0.72) {
         addObject('power', a + 45, y - 126, { radius: 24, power: 'boost' });
-        addObject('spike', a + 175, y, { width: 52, height: 40 });
-        localCoins(a + 250, a + 360, y - 105, 45);
+        if (!hasGap) {
+          const spikeX = x + width - 90;
+          addObject('spike', spikeX, y, { width: 52, height: 40 });
+          localCoins(spikeX + 62, spikeX + 155, y - 105, 45);
+        } else {
+          localCoins(a + 140, a + 270, Math.min(previous.y, y) - 118, 58);
+        }
       } else if (pattern < 0.86) {
-        addObject('saw', a + 55, y - 74, { radius: 32 });
-        localCoins(a + 128, a + 275, y - 122, 50);
+        // The low hanging saw leaves a clear crouch lane underneath.
+        addObject('saw', a + 55, y - 100, { radius: 28 });
+        localCoins(a + 128, a + 275, y - 54, 18);
       } else {
-        addObject('crate', a, y, { width: 70, height: 74 });
-        localCoins(a + 76, a + 225, y - 116, 46);
+        addObject('barrier', a, y, { width: 84, height: 96 });
+        localCoins(a + 105, a + 260, y - 132, 52);
       }
     } else {
       addCoinsLine(x + 100, x + 310, y - 62, 22);
@@ -223,6 +234,8 @@
   function obstacleBox(o) {
     if (o.kind === 'orb' || o.kind === 'saw') return { left: o.x - o.radius, right: o.x + o.radius, top: o.y - o.radius, bottom: o.y + o.radius };
     if (o.kind === 'bar') return { left: o.x - o.width / 2, right: o.x + o.width / 2, top: o.y - 130, bottom: o.y - 103 };
+    if (o.kind === 'spike') return { left: o.x - o.width / 2 + 8, right: o.x + o.width / 2 - 8, top: o.y - o.height + 4, bottom: o.y - 3 };
+    if (o.kind === 'cone') return { left: o.x - o.width / 2 + 5, right: o.x + o.width / 2 - 5, top: o.y - o.height + 7, bottom: o.y - 3 };
     return { left: o.x - o.width / 2, right: o.x + o.width / 2, top: o.y - o.height, bottom: o.y };
   }
   function overlaps(a, b) { return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top; }
@@ -351,7 +364,8 @@
         }
         continue;
       }
-      if (!o.hit && Math.abs(o.x - player.x) < 105) {
+      const objectReach = o.radius || o.width ? Math.max(105, (o.radius || o.width / 2) + box.width / 2 + 12) : 105;
+      if (!o.hit && Math.abs(o.x - player.x) < objectReach) {
         const obox = obstacleBox(o);
         if (overlaps(box, obox)) { if (player.dash > 0) { o.hit = true; game.score += 35; burst(o.x, o.y - 20, '#89e7ff', 14, 190); } else crash(o); }
       }
@@ -448,7 +462,7 @@
     const celestialX = screenX(980, .04), celestialColor = pal.key === 'night' ? '#f3e9ff' : '#ffe996';
     drawGlow(celestialX, 125, 88, celestialColor); ctx.fillStyle = celestialColor; ctx.beginPath(); ctx.arc(celestialX, 125, 48, 0, Math.PI * 2); ctx.fill();
     const cloudStart = Math.floor(cameraX * .08 / 520) - 2;
-    for (let i = cloudStart; i < cloudStart + 6; i++) drawCloud(screenX(i * 520 + 280, .08), 150 + (i & 1) * 68, i & 1 ? .68 : .9, '#ffffff');
+    for (let i = cloudStart; i < cloudStart + 6; i++) drawCloud(screenX(i * 520 + 280, .08), 150 + (i & 1) * 68, i & 1 ? .68 : .9, pal.cloud || '#ffffff');
     if (pal.key === 'city') {
       const farHeights = [82, 138, 104, 174, 116, 150, 92];
       const farStart = Math.floor(cameraX * .10 / 190) - 2;
@@ -482,23 +496,61 @@
     }
   }
 
+  function drawWeather(pal, now) {
+    const time = now * .0001;
+    ctx.save();
+    if (pal.weather === 'wind') {
+      ctx.strokeStyle = '#ffffff26'; ctx.lineWidth = 2;
+      for (let i = 0; i < 16; i++) {
+        const x = ((i * 137 + time * (42 + i % 4 * 9)) % (V.width + 180)) - 90;
+        const y = 210 + (i * 47) % 250;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 32 + (i % 3) * 12, y - 3); ctx.stroke();
+      }
+    } else if (pal.weather === 'dust') {
+      ctx.fillStyle = '#ffe0ad55';
+      for (let i = 0; i < 28; i++) {
+        const x = ((i * 91 + time * (18 + i % 5 * 5)) % (V.width + 80)) - 40;
+        const y = 250 + (i * 31) % 250;
+        ctx.beginPath(); ctx.arc(x, y, 1.5 + (i % 3), 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (pal.weather === 'snow') {
+      ctx.fillStyle = '#ffffffb8';
+      for (let i = 0; i < 32; i++) {
+        const x = ((i * 113 + time * (12 + i % 4 * 4)) % (V.width + 60)) - 30;
+        const y = ((i * 53 + time * (28 + i % 3 * 8)) % 440) + 48;
+        const r = 1.5 + (i % 3) * .7;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (pal.weather === 'rain') {
+      ctx.strokeStyle = '#9cc6ff42'; ctx.lineWidth = 2;
+      for (let i = 0; i < 32; i++) {
+        const x = ((i * 79 + time * 65) % (V.width + 100)) - 50;
+        const y = ((i * 43 + time * 160) % 430) + 35;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 9, y + 22); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
   function drawGround(pal) {
     const groundGrad = ctx.createLinearGradient(0, V.ground, 0, V.height); groundGrad.addColorStop(0, '#2b4a58'); groundGrad.addColorStop(.18, pal.ground); groundGrad.addColorStop(1, '#0c1725'); ctx.fillStyle = groundGrad; ctx.fillRect(0, V.ground, V.width, V.height - V.ground);
     for (const platform of platforms) {
       const x = screenX(platform.x), w = platform.width;
       if (x + w < -30 || x > V.width + 30) continue;
-      poly([[x, platform.y], [x + w, platform.y], [x + w - 12, V.height], [x + 12, V.height]], pal.ground, '#0d1d2c', 2);
-      ctx.fillStyle = pal.top; ctx.fillRect(x, platform.y, w, 13);
-      ctx.fillStyle = '#ffffff2a'; ctx.fillRect(x, platform.y, w, 3);
+      const face = pal.platformFace || pal.ground, cap = pal.platformCap || pal.top, edge = pal.platformEdge || '#0d1d2c';
+      poly([[x, platform.y], [x + w, platform.y], [x + w - 12, V.height], [x + 12, V.height]], face, edge, 2);
+      ctx.fillStyle = cap; ctx.fillRect(x, platform.y, w, 13);
+      ctx.fillStyle = '#ffffff35'; ctx.fillRect(x, platform.y, w, 3);
+      ctx.fillStyle = edge + '66'; ctx.fillRect(x, platform.y + 13, w, 8);
       ctx.strokeStyle = '#ffffff20'; ctx.lineWidth = 2;
       const stripeStart = Math.floor(platform.x / 74) * 74;
       for (let stripe = stripeStart; stripe < platform.x + platform.width; stripe += 74) { const sx = screenX(stripe); ctx.beginPath(); ctx.moveTo(sx, platform.y + 28); ctx.lineTo(sx - 16, platform.y + 57); ctx.stroke(); }
-      ctx.fillStyle = '#07152288'; ctx.fillRect(x, platform.y + 13, w, 7);
+      ctx.strokeStyle = pal.accent + '4d'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x + 18, platform.y + 10); ctx.lineTo(x + w - 18, platform.y + 10); ctx.stroke();
     }
     for (const ramp of ramps) {
       const x1 = screenX(ramp.x1), x2 = screenX(ramp.x2);
       if (x2 < -20 || x1 > V.width + 20) continue;
-      poly([[x1, ramp.y1], [x2, ramp.y2], [x2, V.height], [x1, V.height]], '#233b4a');
+      poly([[x1, ramp.y1], [x2, ramp.y2], [x2, V.height], [x1, V.height]], pal.rampFace || '#233b4a');
       ctx.strokeStyle = pal.accent + '88'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x1, ramp.y1); ctx.lineTo(x2, ramp.y2); ctx.stroke();
       ctx.strokeStyle = '#ffffff18'; ctx.lineWidth = 2;
       for (let line = 1; line < 4; line++) { const t = line / 4, sx = lerp(x1, x2, t); ctx.beginPath(); ctx.moveTo(sx, lerp(ramp.y1, ramp.y2, t) + 22); ctx.lineTo(sx - 18, V.height); ctx.stroke(); }
@@ -509,14 +561,100 @@
     const x = screenX(o.x), y = o.y, s = .72 + clamp((x / V.width) * .2, 0, .2), r = o.radius * s, squash = .25 + Math.abs(Math.cos(o.spin)) * .75;
     ctx.save(); ctx.translate(x, y); ctx.scale(squash, 1); ctx.shadowBlur = 18; ctx.shadowColor = pal.accent; ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = '#fff1a0'; ctx.lineWidth = 3; ctx.stroke(); ctx.fillStyle = '#fff9c5'; ctx.fillRect(-2, -r * .52, 4, r * 1.04); ctx.restore();
   }
+
+  function drawBolt(x, y, radius = 3, fill = '#d9e6ec') {
+    ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#07121c99'; ctx.lineWidth = 1; ctx.stroke();
+  }
+  function drawHazardStripes(x, y, width, height, accent = '#f3b83f') {
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, width, height); ctx.clip();
+    ctx.fillStyle = '#182735'; ctx.fillRect(x, y, width, height);
+    ctx.fillStyle = accent;
+    for (let offset = -height; offset < width + height; offset += 24) {
+      ctx.beginPath(); ctx.moveTo(x + offset, y + height); ctx.lineTo(x + offset + 10, y + height);
+      ctx.lineTo(x + offset + height + 10, y); ctx.lineTo(x + offset + height, y); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function drawWarningLight(x, y, color = '#ff665b') {
+    ctx.save(); ctx.shadowBlur = 12; ctx.shadowColor = color; ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#fff2d0'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  }
   function drawObstacle(o, pal) {
     const x = screenX(o.x); if (x < -170 || x > V.width + 170) return;
-    if (o.kind === 'spike') { ctx.fillStyle = '#ec5546'; ctx.strokeStyle = '#7d2421'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(x - o.width / 2, o.y); ctx.lineTo(x - o.width * .24, o.y - o.height); ctx.lineTo(x, o.y); ctx.lineTo(x + o.width * .24, o.y - o.height); ctx.lineTo(x + o.width / 2, o.y); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#ffe181'; ctx.fillRect(x - o.width / 2, o.y - 8, o.width, 5); }
-    if (o.kind === 'crate') { const w = o.width, h = o.height; poly([[x - w / 2, o.y - h], [x + w / 2, o.y - h - 9], [x + w / 2 + 12, o.y - h + 6], [x - w / 2 + 12, o.y - h + 15]], '#e0a060', '#5e351e', 3); ctx.fillStyle = '#b86b3c'; ctx.fillRect(x - w / 2, o.y - h, w, h); ctx.strokeStyle = '#65351e'; ctx.lineWidth = 5; ctx.strokeRect(x - w / 2, o.y - h, w, h); ctx.beginPath(); ctx.moveTo(x - w / 2 + 8, o.y - h + 9); ctx.lineTo(x + w / 2 - 8, o.y - 12); ctx.moveTo(x + w / 2 - 8, o.y - h + 9); ctx.lineTo(x - w / 2 + 8, o.y - 12); ctx.stroke(); }
-    if (o.kind === 'bar') { ctx.fillStyle = '#344a58'; ctx.fillRect(x - o.width / 2, o.y - 130, 12, 130); ctx.fillRect(x + o.width / 2 - 12, o.y - 130, 12, 130); ctx.fillStyle = '#f0b337'; ctx.fillRect(x - o.width / 2, o.y - 130, o.width, o.height); ctx.strokeStyle = '#633f16'; ctx.lineWidth = 4; ctx.strokeRect(x - o.width / 2, o.y - 130, o.width, o.height); ctx.fillStyle = '#fff1bf'; for (let i = -2; i < 3; i++) { ctx.save(); ctx.translate(x + i * 31, o.y - 116); ctx.rotate(-.6); ctx.fillRect(-6, -18, 12, 36); ctx.restore(); } }
-    if (o.kind === 'orb') { ctx.save(); ctx.translate(x, o.y); ctx.shadowBlur = 22; ctx.shadowColor = '#5be0f5'; ctx.fillStyle = '#5be0f5'; ctx.beginPath(); ctx.arc(0, 0, o.radius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = '#e4ffff'; ctx.lineWidth = 4; ctx.stroke(); ctx.strokeStyle = '#206b9c'; ctx.beginPath(); ctx.arc(0, 0, o.radius * .56, 0, Math.PI * 1.4); ctx.stroke(); ctx.restore(); }
-    if (o.kind === 'saw') { ctx.save(); ctx.translate(x, o.y); ctx.rotate(o.spin); ctx.fillStyle = '#d6dce8'; ctx.strokeStyle = '#4b5870'; ctx.lineWidth = 3; ctx.beginPath(); for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, r = i % 2 ? o.radius * .72 : o.radius; const px = Math.cos(a) * r, py = Math.sin(a) * r; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#f45c65'; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill(); ctx.restore(); }
-    if (o.kind === 'power') { const boost = o.power === 'boost', color = boost ? '#5be0f5' : '#ffd34d'; ctx.save(); ctx.translate(x, o.y); ctx.shadowBlur = 20; ctx.shadowColor = color; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, o.radius || 22, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = '#fff9d2'; ctx.lineWidth = 4; ctx.stroke(); ctx.fillStyle = '#092037'; ctx.font = '900 17px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(boost ? '速' : '盾', 0, 1); ctx.restore(); }
+    if (o.kind === 'spike') {
+      const w = o.width, h = o.height, count = Math.max(1, o.count || 2), cell = w / count;
+      ctx.save(); ctx.shadowColor = '#0008'; ctx.shadowBlur = 10;
+      roundedRect(x - w / 2, o.y - 14, w, 14, 4, '#182735', '#07131d'); ctx.shadowBlur = 0;
+      for (let i = 0; i < count; i++) {
+        const sx = x - w / 2 + cell * (i + .5), peak = o.y - h * (.86 + (i % 2) * .06);
+        poly([[sx - cell * .45, o.y - 5], [sx, peak], [sx + cell * .45, o.y - 5]], i % 2 ? '#ef654e' : '#f04b43', '#76242a', 3);
+        poly([[sx - 4, o.y - 11], [sx, peak + 8], [sx + 4, o.y - 11]], '#ffae70');
+      }
+      drawHazardStripes(x - w / 2 + 4, o.y - 12, w - 8, 7, '#f4c34e');
+      drawBolt(x - w / 2 + 10, o.y - 7, 2.5); drawBolt(x + w / 2 - 10, o.y - 7, 2.5); ctx.restore();
+      return;
+    }
+    if (o.kind === 'crate') {
+      const w = o.width, h = o.height, left = x - w / 2, top = o.y - h;
+      ctx.save(); ctx.shadowColor = '#0009'; ctx.shadowBlur = 12;
+      poly([[left, top], [left + w, top - 9], [left + w + 12, top + 6], [left + 12, top + 15]], '#e4ad69', '#5e351e', 3);
+      ctx.shadowBlur = 0; roundedRect(left, top, w, h, 3, '#b96d3d', '#65351e', 3);
+      ctx.fillStyle = '#d58a4d'; ctx.fillRect(left + 5, top + 5, 8, h - 10); ctx.fillRect(left + w - 13, top + 5, 8, h - 10);
+      ctx.strokeStyle = '#7b3d24'; ctx.lineWidth = 4; ctx.beginPath();
+      ctx.moveTo(left + 9, top + 10); ctx.lineTo(left + w - 9, o.y - 12); ctx.moveTo(left + w - 9, top + 10); ctx.lineTo(left + 9, o.y - 12); ctx.stroke();
+      ctx.strokeStyle = '#f0b66b99'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(left + w * .5, top + 3); ctx.lineTo(left + w * .5, o.y - 4); ctx.stroke();
+      drawBolt(left + 10, top + 11, 3); drawBolt(left + w - 10, top + 11, 3); drawBolt(left + 10, o.y - 12, 3); drawBolt(left + w - 10, o.y - 12, 3); ctx.restore();
+      return;
+    }
+    if (o.kind === 'bar') {
+      const beamY = o.y - 130, left = x - o.width / 2, right = x + o.width / 2;
+      ctx.save(); ctx.shadowColor = '#0008'; ctx.shadowBlur = 10;
+      roundedRect(left + 4, beamY + 5, 16, 130, 4, '#334b5b', '#142331'); roundedRect(right - 20, beamY + 5, 16, 130, 4, '#334b5b', '#142331');
+      ctx.shadowBlur = 0; drawHazardStripes(left, beamY, o.width, o.height, '#f1b63d');
+      ctx.strokeStyle = '#603d16'; ctx.lineWidth = 3; ctx.strokeRect(left, beamY, o.width, o.height);
+      drawBolt(left + 12, beamY + 20, 3); drawBolt(right - 12, beamY + 20, 3); drawWarningLight(left + 11, beamY - 6); drawWarningLight(right - 11, beamY - 6); ctx.restore();
+      return;
+    }
+    if (o.kind === 'cone') {
+      const base = o.y - 3, top = o.y - o.height, w = o.width;
+      ctx.save(); ctx.shadowColor = '#0008'; ctx.shadowBlur = 9; roundedRect(x - w / 2, base - 10, w, 10, 3, '#222f38', '#0a151d'); ctx.shadowBlur = 0;
+      poly([[x - w * .34, base - 10], [x - 8, top], [x + 8, top], [x + w * .34, base - 10]], '#eb6a3d', '#7d3028', 3);
+      ctx.save(); ctx.beginPath(); ctx.moveTo(x - w * .28, base - 13); ctx.lineTo(x + w * .28, base - 13); ctx.lineTo(x + 5, top + 10); ctx.lineTo(x - 5, top + 10); ctx.closePath(); ctx.clip(); ctx.fillStyle = '#fff0bd'; ctx.fillRect(x - w / 2, top + 20, w, 7); ctx.restore();
+      drawBolt(x, top + 8, 2.5, '#fff2cf'); ctx.restore();
+      return;
+    }
+    if (o.kind === 'barrier') {
+      const w = o.width, h = o.height, left = x - w / 2, top = o.y - h;
+      ctx.save(); ctx.shadowColor = '#0009'; ctx.shadowBlur = 12; roundedRect(left, top, w, h, 5, '#344552', '#101d28', 3); ctx.shadowBlur = 0;
+      drawHazardStripes(left + 5, top + 10, w - 10, 31, '#f0b53d');
+      ctx.fillStyle = '#152431'; ctx.fillRect(left + 6, top + 47, w - 12, h - 55);
+      ctx.strokeStyle = '#607987'; ctx.lineWidth = 2; ctx.strokeRect(left + 7, top + 48, w - 14, h - 57);
+      drawWarningLight(left + 13, top + 8); drawWarningLight(left + w - 13, top + 8);
+      drawBolt(left + 14, top + 58, 3); drawBolt(left + w - 14, top + 58, 3);
+      roundedRect(left - 7, o.y - 8, 25, 8, 2, '#1a2a35', '#0b151d'); roundedRect(left + w - 18, o.y - 8, 25, 8, 2, '#1a2a35', '#0b151d'); ctx.restore();
+      return;
+    }
+    if (o.kind === 'orb') {
+      ctx.save(); ctx.translate(x, o.y); ctx.shadowBlur = 22; ctx.shadowColor = '#5be0f5'; ctx.fillStyle = '#5be0f5'; ctx.beginPath(); ctx.arc(0, 0, o.radius, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = '#e4ffff'; ctx.lineWidth = 4; ctx.stroke(); ctx.strokeStyle = '#206b9c'; ctx.beginPath(); ctx.arc(0, 0, o.radius * .56, 0, Math.PI * 1.4); ctx.stroke(); ctx.restore();
+      return;
+    }
+    if (o.kind === 'saw') {
+      ctx.save(); ctx.strokeStyle = '#263d4a'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(x, o.y - 90); ctx.lineTo(x, o.y - o.radius - 2); ctx.stroke();
+      ctx.strokeStyle = '#b2c5ca'; ctx.lineWidth = 2; ctx.setLineDash([6, 7]); ctx.beginPath(); ctx.moveTo(x, o.y - 90); ctx.lineTo(x, o.y - o.radius - 2); ctx.stroke(); ctx.setLineDash([]);
+      ctx.translate(x, o.y); ctx.rotate(o.spin); ctx.shadowColor = '#0009'; ctx.shadowBlur = 10; ctx.fillStyle = '#d9e0e5'; ctx.strokeStyle = '#4b5870'; ctx.lineWidth = 3; ctx.beginPath();
+      for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, r = i % 2 ? o.radius * .72 : o.radius; const px = Math.cos(a) * r, py = Math.sin(a) * r; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0; ctx.fillStyle = '#e85d5e'; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#6a2630'; ctx.lineWidth = 3; ctx.stroke(); ctx.fillStyle = '#f7e2b5'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      return;
+    }
+    if (o.kind === 'power') {
+      const boost = o.power === 'boost', color = boost ? '#5be0f5' : '#ffd34d', r = o.radius || 22;
+      ctx.save(); ctx.translate(x, o.y); ctx.rotate(o.spin * .25); ctx.shadowBlur = 22; ctx.shadowColor = color; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#fff9d2'; ctx.lineWidth = 4; ctx.stroke(); ctx.strokeStyle = color + 'bb'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, r + 10, -.8, 1.9); ctx.stroke();
+      ctx.fillStyle = '#092037'; ctx.font = '900 17px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(boost ? '速' : '盾', 0, 1);
+      ctx.fillStyle = '#ffffff'; for (let i = 0; i < 3; i++) { const a = o.spin + i * 2.1; ctx.beginPath(); ctx.arc(Math.cos(a) * (r + 9), Math.sin(a) * (r + 9), 2.5, 0, Math.PI * 2); ctx.fill(); } ctx.restore();
+    }
   }
 
   function drawPlayer(pal) {
@@ -541,7 +679,7 @@
     ctx.fillStyle = backdrop; ctx.fillRect(0, 0, canvas.width, groundPx);
     ctx.fillStyle = pal.ground; ctx.fillRect(0, groundPx, canvas.width, canvas.height - groundPx);
     ctx.setTransform(dpr * viewScale, 0, 0, dpr * viewScale, dpr * viewX, dpr * viewY);
-    ctx.save(); if (game.shake > .2) ctx.translate((Math.random() - .5) * game.shake, (Math.random() - .5) * game.shake); drawSky(pal); drawGround(pal);
+    ctx.save(); if (game.shake > .2) ctx.translate((Math.random() - .5) * game.shake, (Math.random() - .5) * game.shake); drawSky(pal); drawWeather(pal, now); drawGround(pal);
     const visible = objects.slice().sort((a, b) => a.x - b.x); for (const o of visible) { if (o.kind === 'coin') drawCoin(o, pal); else drawObstacle(o, pal); } drawParticles(); drawPlayer(pal); ctx.restore();
     refreshHud();
   }
