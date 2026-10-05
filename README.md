@@ -2,6 +2,8 @@
 
 一个纯前端的横屏侧视跑酷游戏，玩法偏《忍者必须死》：奶龙自动向右奔跑，跳跃、二段跳、翻滚和冲刺穿过高台、断崖与机关。不需要安装、不需要联网、不需要服务器。
 
+在线试玩：<https://burning-frappuccino.github.io/nailong-run/>
+
 ## 怎么打开
 
 最简单：双击 `开始游戏.bat`，或直接双击 `index.html`。Chrome / Edge 表现最好。
@@ -43,6 +45,8 @@ nailong-run/
 ## 说明
 
 - 浏览器首次运行需要先点击“开始跑酷”才能解锁音频。
+- 手机建议横屏打开；支持触控滑动、长按翻滚按钮和安全区适配。
+- Android Chrome 等支持 `navigator.vibrate` 的设备会在跳跃、冲刺、碰撞和结算时提供触感反馈；iOS Safari 不支持时会自动静默降级。
 - 结算时会播放 `assets/laugh.mp3`。
 - 结算页的“支持作者”入口会展示 `assets/support-wechat.png` 微信收款二维码。
 - 如需额外配置收款链接，可在入口脚本加载前设置 `window.NAILONG_SUPPORT_URL`。
