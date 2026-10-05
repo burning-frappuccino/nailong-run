@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nailong-run-v2';
+const CACHE_NAME = 'nailong-run-v3';
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,6 +11,12 @@ const APP_SHELL = [
   './assets/laugh.mp3',
   './assets/start-meme-character.png',
   './assets/support-wechat.png',
+  './assets/idle/00.png',
+  './assets/idle/01.png',
+  './assets/idle/02.png',
+  './assets/idle/03.png',
+  './assets/idle/04.png',
+  './assets/idle/05.png',
   './assets/walk/00.png',
   './assets/walk/01.png',
   './assets/walk/02.png',
