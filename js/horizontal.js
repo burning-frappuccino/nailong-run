@@ -26,8 +26,12 @@
   laughAudio.preload = 'auto';
   laughAudio.volume = .9;
   const SUPPORT_URL = window.NAILONG_SUPPORT_URL || '';
+  const HAPTIC = {
+    start: 35, jump: 24, doubleJump: [18, 24, 18], roll: 20, dash: 45,
+    boost: [30, 24, 30], shield: 45, shieldHit: [60, 35, 75], gameOver: [90, 50, 160]
+  };
 
-  let dpr = 1, viewScale = 1, viewX = 0, viewY = 0;
+  let dpr = 1, viewScale = 1, viewX = 0, viewY = 0, playerScreenX = V.playerScreenX;
   let cameraX = 0, last = performance.now(), muted = false, audioPrimed = false;
   let laughRunIndex = -1;
   let seed = Date.now() >>> 0;
@@ -77,8 +81,21 @@
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
-    viewScale = Math.min(width / V.width, height / V.height);
-    viewX = (width - V.width * viewScale) / 2; viewY = (height - V.height * viewScale) / 2;
+    const portrait = height > width && width <= 800;
+    if (portrait) {
+      const sceneHeight = Math.min(height * .58, width * 1.25);
+      viewScale = sceneHeight / V.height;
+      viewX = 0;
+      viewY = Math.max(84, (height - sceneHeight) * .44);
+      const visibleWorldWidth = width / viewScale;
+      playerScreenX = clamp(visibleWorldWidth * .3, 150, 190);
+    } else {
+      viewScale = Math.min(width / V.width, height / V.height);
+      viewX = (width - V.width * viewScale) / 2;
+      viewY = (height - V.height * viewScale) / 2;
+      playerScreenX = V.playerScreenX;
+    }
+    cameraX = player.x - playerScreenX;
   }
   addEventListener('resize', resize, { passive: true }); resize();
   addEventListener('orientationchange', () => requestAnimationFrame(resize), { passive: true });
@@ -160,7 +177,7 @@
     addPlatform(-1100, 2050, V.ground);
     player.x = 280; player.feetY = V.ground; player.vy = 0; player.onGround = true; player.jumps = 0;
     player.roll = 0; player.dash = 0; player.boost = 0; player.dashCooldown = 0; player.invulnerable = 0; player.shield = false; player.runPhase = 0; player.lean = 0; player.alive = true; player.platform = platforms[0]; player.support = null;
-    ensureWorld(); cameraX = player.x - V.playerScreenX;
+    ensureWorld(); cameraX = player.x - playerScreenX;
   }
 
   function surfaceAt(x) {
@@ -242,7 +259,7 @@
   }
 
   function startRun() {
-    unlockAudio(); stopLaughAudio(); stopHaptic(); haptic(18); laughAudio.muted = muted; clearInput(); game.runIndex++; game.state = 'playing'; game.countdown = 0;
+    unlockAudio(); stopLaughAudio(); stopHaptic(); haptic(HAPTIC.start); laughAudio.muted = muted; clearInput(); game.runIndex++; game.state = 'playing'; game.countdown = 0;
     game.time = 0; game.distance = 0; game.score = 0; game.coins = 0; game.combo = 0; game.comboTime = 0; game.maxCombo = 0; game.speed = 330; game.biome = 0; game.bannerTime = 0; game.shake = 0;
     resetWorld(); show(ui.start, false); show(ui.pause, false); show(ui.over, false); ui.combo.classList.add('hidden'); showBanner('出发！');
   }
@@ -251,7 +268,7 @@
   function resumeRun() { if (game.state !== 'paused') return; clearInput(); game.state = 'playing'; show(ui.pause, false); beep(320, .08); }
   function finishRun() {
     if (game.state === 'over') return;
-    game.state = 'over'; clearInput(); game.shake = 6; haptic([70, 35, 120]);
+    game.state = 'over'; clearInput(); game.shake = 6; haptic(HAPTIC.gameOver);
     laughRunIndex = game.runIndex;
     const distance = Math.floor(game.distance), record = distance > game.best;
     if (record) game.best = distance;
@@ -273,16 +290,16 @@
     player.x += speed * dt;
     player.runPhase += dt * (speed / 38);
     player.dash = Math.max(0, player.dash - dt); player.boost = Math.max(0, player.boost - dt); player.dashCooldown = Math.max(0, player.dashCooldown - dt); player.invulnerable = Math.max(0, player.invulnerable - dt);
-    if (input.dash) { input.dash = false; if (player.dashCooldown <= 0) { player.dash = .52; player.dashCooldown = 3.6; player.invulnerable = .58; game.shake = 5; haptic(32); beep(520, .12, 'sawtooth', .035); burst(player.x - 35, player.feetY - 35, '#89e7ff', 14, 210); } }
+    if (input.dash) { input.dash = false; if (player.dashCooldown <= 0) { player.dash = .52; player.dashCooldown = 3.6; player.invulnerable = .58; game.shake = 5; haptic(HAPTIC.dash); beep(520, .12, 'sawtooth', .035); burst(player.x - 35, player.feetY - 35, '#89e7ff', 14, 210); } }
     if (input.jump) {
       input.jump = false;
-      if (player.onGround) { player.vy = -770; player.onGround = false; player.jumps = 1; player.support = null; haptic(12); beep(530, .09, 'triangle'); burst(player.x - 22, player.feetY, '#d9d2ba', 7, 100); }
-      else if (player.jumps === 1) { player.vy = -680; player.jumps = 2; haptic([9, 18, 9]); beep(690, .09, 'triangle'); burst(player.x, player.feetY + 10, '#ffe18a', 8, 120); }
+      if (player.onGround) { player.vy = -770; player.onGround = false; player.jumps = 1; player.support = null; haptic(HAPTIC.jump); beep(530, .09, 'triangle'); burst(player.x - 22, player.feetY, '#d9d2ba', 7, 100); }
+      else if (player.jumps === 1) { player.vy = -680; player.jumps = 2; haptic(HAPTIC.doubleJump); beep(690, .09, 'triangle'); burst(player.x, player.feetY + 10, '#ffe18a', 8, 120); }
     }
     const wantsRoll = input.rollHeld || input.roll;
     if (wantsRoll && player.roll <= 0) beep(260, .08, 'square', .022);
     if (input.rollHeld) player.roll = .12;
-    if (input.roll) { player.roll = Math.max(player.roll, .62); input.roll = false; }
+    if (input.roll) { player.roll = Math.max(player.roll, .62); input.roll = false; haptic(HAPTIC.roll); }
     const previousFeet = player.feetY;
     if (!player.onGround) { player.vy += 2100 * dt; player.feetY += player.vy * dt; }
     let landedOnCrate = false;
@@ -315,7 +332,7 @@
     if (player.shield) {
       player.shield = false; player.invulnerable = .72;
       if (obstacle) obstacle.hit = true;
-      game.shake = 4; haptic([42, 28, 42]); showBanner('护盾抵挡一次伤害'); beep(420, .12, 'triangle', .04); burst(player.x, player.feetY - 50, '#ffd34d', 16, 220);
+      game.shake = 4; haptic(HAPTIC.shieldHit); showBanner('护盾抵挡一次伤害'); beep(420, .12, 'triangle', .04); burst(player.x, player.feetY - 50, '#ffd34d', 16, 220);
       return;
     }
     player.alive = false; game.shake = 0; beep(120, .26, 'sawtooth', .05); burst(player.x, player.feetY - 50, '#ff715b', 22, 260); finishRun();
@@ -328,8 +345,8 @@
         if (!o.hit && Math.abs(o.x - player.x) < 52 && Math.abs(o.y - (player.feetY - 55)) < 95) {
           if (o.kind === 'coin') collectCoin(o); else {
             o.hit = true; game.score += 50;
-            if (o.power === 'boost') { player.boost = Math.max(player.boost, 5.2); haptic([16, 22, 16]); showBanner('蓝球：加速'); beep(760, .12, 'triangle'); burst(o.x, o.y, '#5be0f5', 14); }
-            else { player.shield = true; haptic(28); showBanner('黄球：护盾'); beep(860, .12, 'triangle'); burst(o.x, o.y, '#ffd34d', 14); }
+            if (o.power === 'boost') { player.boost = Math.max(player.boost, 5.2); haptic(HAPTIC.boost); showBanner('蓝球：加速'); beep(760, .12, 'triangle'); burst(o.x, o.y, '#5be0f5', 14); }
+            else { player.shield = true; haptic(HAPTIC.shield); showBanner('黄球：护盾'); beep(860, .12, 'triangle'); burst(o.x, o.y, '#ffd34d', 14); }
           }
         }
         continue;
@@ -363,7 +380,7 @@
     game.distance += runSpeed * dt / 8; game.score += runSpeed * dt * .08;
     const nextBiome = Math.min(BIOMES.length - 1, Math.floor(game.distance / 520));
     if (nextBiome !== game.biome) { game.biome = nextBiome; showBanner(BIOMES[game.biome].emoji + ' ' + BIOMES[game.biome].name); }
-    updatePlayer(dt); cameraX = player.x - V.playerScreenX; ensureWorld(); updateObjects(dt);
+    updatePlayer(dt); cameraX = player.x - playerScreenX; ensureWorld(); updateObjects(dt);
     if (game.comboTime > 0) { game.comboTime -= dt; if (game.comboTime <= 0) game.combo = 0; }
   }
 
@@ -518,7 +535,11 @@
   function draw(now) {
     const pal = BIOMES[game.biome];
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#0b1423'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const groundPx = clamp((viewY + V.ground * viewScale) * dpr, 1, canvas.height);
+    const backdrop = ctx.createLinearGradient(0, 0, 0, groundPx);
+    backdrop.addColorStop(0, pal.sky[0]); backdrop.addColorStop(1, pal.sky[1]);
+    ctx.fillStyle = backdrop; ctx.fillRect(0, 0, canvas.width, groundPx);
+    ctx.fillStyle = pal.ground; ctx.fillRect(0, groundPx, canvas.width, canvas.height - groundPx);
     ctx.setTransform(dpr * viewScale, 0, 0, dpr * viewScale, dpr * viewX, dpr * viewY);
     ctx.save(); if (game.shake > .2) ctx.translate((Math.random() - .5) * game.shake, (Math.random() - .5) * game.shake); drawSky(pal); drawGround(pal);
     const visible = objects.slice().sort((a, b) => a.x - b.x); for (const o of visible) { if (o.kind === 'coin') drawCoin(o, pal); else drawObstacle(o, pal); } drawParticles(); drawPlayer(pal); ctx.restore();
@@ -575,7 +596,7 @@
       button.addEventListener('pointerdown', event => {
         event.preventDefault();
         button.setPointerCapture?.(event.pointerId);
-        if (action === 'roll') { input.rollHeld = true; haptic(10); }
+        if (action === 'roll') { input.rollHeld = true; haptic(HAPTIC.roll); }
         else doAction(action);
         button.classList.add('active');
       }, { passive: false });

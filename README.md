@@ -29,7 +29,7 @@
 ```text
 nailong-run/
 ├─ index.html          页面骨架与 HUD
-├─ style.css           界面样式与横屏适配
+├─ style.css           界面样式与横竖屏适配
 ├─ 开始游戏.bat        双击启动
 ├─ js/
 │  ├─ horizontal.js    横版主循环、关卡、碰撞、输入与 Canvas 绘制
@@ -45,9 +45,9 @@ nailong-run/
 ## 说明
 
 - 浏览器首次运行需要先点击“开始跑酷”才能解锁音频。
-- 手机建议横屏打开；支持触控滑动、长按翻滚按钮和安全区适配。
+- 手机横屏、竖屏均可直接游玩；支持触控滑动、长按翻滚按钮和安全区适配。
 - Android Chrome 等支持 `navigator.vibrate` 的设备会在跳跃、冲刺、碰撞和结算时提供触感反馈；iOS Safari 不支持时会自动静默降级。
 - 结算时会播放 `assets/laugh.mp3`。
-- 结算页的“支持作者”入口会展示 `assets/support-wechat.png` 微信收款二维码。
+- 结算页的“请作者吃包辣条”入口会展示 `assets/support-wechat.png` 微信收款二维码。
 - 如需额外配置收款链接，可在入口脚本加载前设置 `window.NAILONG_SUPPORT_URL`。
 - `tests/selftest.html` 是旧版透视引擎的历史自检，不代表横版入口的画面；横版请直接打开根页面试玩。

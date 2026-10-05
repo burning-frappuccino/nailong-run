@@ -66,7 +66,7 @@ kbd { display: inline-grid; place-items: center; min-width: 23px; height: 23px; 
 .result-grid span { padding: 9px 6px; border: 1px solid #ffffff18; border-radius: 7px; background: #ffffff08; }
 .result-grid b { display: block; margin-top: 3px; color: #fff; font-size: 18px; }
 .support-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; color: #9eabc0; font-size: 11px; }
-.support-btn { padding: 8px 13px; border: 1px solid #ffd34d66; border-radius: 7px; background: #ffd34d16; color: #ffe08a; font-weight: 900; }
+.support-btn { padding: 8px 13px; border: 1px solid #ffd34d66; border-radius: 7px; background: #ffd34d16; color: #ffe08a; font-weight: 900; white-space: nowrap; }
 .support-btn:active { transform: translateY(1px); background: #ffd34d28; }
 .support-modal { position: absolute; z-index: 16; inset: 0; display: grid; place-items: center; padding: calc(18px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left)); background: #06101de8; backdrop-filter: blur(9px); }
 .support-dialog { position: relative; width: min(430px, calc(100% - 4px)); max-height: calc(100% - 12px); overflow: auto; padding: 25px 24px 21px; border: 1px solid #ffffff2b; border-radius: 10px; background: #14243af5; box-shadow: 0 28px 90px #000b; text-align: center; }
@@ -81,10 +81,6 @@ kbd { display: inline-grid; place-items: center; min-width: 23px; height: 23px; 
 .mobile-controls { position: absolute; z-index: 7; right: calc(18px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); display: flex; gap: 9px; touch-action: none; }
 .mobile-controls button { display: grid; place-items: center; width: 55px; height: 51px; min-width: 55px; min-height: 51px; border: 1px solid #ffffff35; border-radius: 9px; background: #17283fd1; color: #fff; font-size: 22px; font-weight: 900; box-shadow: 0 7px 18px #0004; touch-action: none; user-select: none; -webkit-user-select: none; }
 .mobile-controls button:active, .mobile-controls button.active { background: #354e70ed; transform: translateY(2px); }
-.portrait-notice { display: none; position: absolute; z-index: 20; inset: 0; place-items: center; align-content: center; gap: 10px; padding: calc(30px + env(safe-area-inset-top)) calc(30px + env(safe-area-inset-right)) calc(30px + env(safe-area-inset-bottom)) calc(30px + env(safe-area-inset-left)); background: #0b1423f2; text-align: center; }
-.portrait-notice strong { font-size: 25px; }
-.portrait-notice span { color: var(--muted); font-size: 14px; }
-@media (orientation: portrait) and (max-width: 800px) { .portrait-notice { display: grid; } }
 @media (max-width: 900px) {
   .hud { gap: 10px; padding-inline: 12px; }
   .brand { font-size: 17px; }
@@ -107,11 +103,7 @@ kbd { display: inline-grid; place-items: center; min-width: 23px; height: 23px; 
   .panel-actions { flex-wrap: wrap; }
   .panel-actions button { flex: 1 1 145px; min-width: 0; }
   .support-row { flex-direction: column; gap: 6px; }
-  .start-meme { display: block; width: 64px; opacity: .62; top: 52%; }
-  .start-meme-left { right: calc(100% + 4px); }
-  .start-meme-right { left: calc(100% + 4px); }
 }
-@media (orientation: portrait) and (max-width: 800px) { .start-meme { display: none; } }
 @media (orientation: landscape) and (max-height: 480px) {
   .hud { height: 52px; padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }
   .brand { font-size: 15px; }
@@ -122,12 +114,51 @@ kbd { display: inline-grid; place-items: center; min-width: 23px; height: 23px; 
   .icon-btn { width: 34px; height: 34px; }
   .mobile-controls { right: calc(10px + env(safe-area-inset-right)); bottom: calc(10px + env(safe-area-inset-bottom)); gap: 6px; }
   .mobile-controls button { width: 48px; height: 44px; min-width: 48px; min-height: 44px; font-size: 19px; }
-  .panel { max-height: calc(100% - 12px); overflow-y: auto; padding-top: 15px; padding-bottom: 15px; }
+  .panel { max-height: calc(100% - 12px); overflow-x: hidden; overflow-y: auto; padding-top: 15px; padding-bottom: 15px; }
   .panel-start { padding-top: 15px; }
   .panel h1 { font-size: 26px; }
   .tagline { margin: 5px 0 10px; }
   .records { margin: 10px 0; }
   .howto { margin-top: 11px; }
   .tip { margin-top: 9px; }
+}
+@media (pointer: coarse), (max-width: 900px) {
+  .mobile-controls { left: calc(12px + env(safe-area-inset-left)); right: auto; }
+}
+@media (orientation: landscape) and (max-height: 480px) and (pointer: coarse) {
+  .mobile-controls { left: calc(10px + env(safe-area-inset-left)); right: auto; }
+  .start-meme { display: block; width: 64px; opacity: .62; top: 52%; }
+  .start-meme-left { right: calc(100% + 4px); }
+  .start-meme-right { left: calc(100% + 4px); }
+}
+@media (orientation: portrait) and (max-width: 800px) {
+  .hud {
+    min-height: calc(96px + env(safe-area-inset-top)); height: auto;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 36px 30px;
+    align-content: start; gap: 4px 8px;
+    padding: calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 8px calc(10px + env(safe-area-inset-left));
+  }
+  .brand { grid-column: 1; grid-row: 1; min-width: 0; font-size: 16px; }
+  .stats { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; width: 100%; gap: 8px; }
+  .stats span { font-size: 10px; }
+  .stats b { font-size: 14px; }
+  .hud-actions { grid-column: 2; grid-row: 1; gap: 6px; }
+  .ability-status { max-width: 96px; padding-inline: 7px; }
+  .icon-btn { width: 34px; height: 34px; font-size: 15px; }
+  .combo { top: calc(104px + env(safe-area-inset-top)); }
+  .banner { top: calc(151px + env(safe-area-inset-top)); max-width: calc(100% - 24px); text-align: center; }
+  .mobile-controls { left: calc(12px + env(safe-area-inset-left)); right: auto; bottom: calc(16px + env(safe-area-inset-bottom)); gap: 8px; }
+  .mobile-controls button { width: 58px; height: 56px; min-width: 58px; min-height: 56px; font-size: 22px; }
+  .panel { width: min(530px, calc(100% - 20px)); max-height: calc(100% - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-x: hidden; overflow-y: auto; padding: 20px 16px 21px; }
+  .panel h1 { font-size: 30px; }
+  .panel h2 { font-size: 25px; }
+  .tagline { margin: 7px 0 13px; font-size: 13px; }
+  .records { margin: 13px 0; }
+  .howto { display: none; }
+  .tip { margin-top: 13px; font-size: 12px; line-height: 1.55; }
+  .result b { font-size: 52px; }
+  .result-grid b { font-size: 16px; }
+  .start-meme { display: none; }
+  .support-dialog { width: min(410px, calc(100% - 2px)); padding-inline: 17px; }
 }
 @media (pointer: fine) and (min-width: 901px) { .mobile-controls { opacity: .36; transition: opacity .2s; } .mobile-controls:hover { opacity: 1; } }
